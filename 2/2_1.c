@@ -10,6 +10,13 @@
 #define hlist_for_each(pos, head) \
     for (pos = (head)->first; pos; pos = pos->next)
 
+#define hlist_for_each_safe(pos, n, head)        \
+    for (pos = (head)->first; pos && ({          \
+                                  n = pos->next; \
+                                  1;             \
+                              });                \
+         pos = n)
+
 struct hlist_node {
     struct hlist_node *next, **pprev;
 };
@@ -159,6 +166,15 @@ static struct TreeNode *buildTree_mod(int *preorder, int *inorder, int size)
     }
 
     free(stk);
+    for (int i = 0; i < size; i++) {
+        struct hlist_node *curr, *n;
+        hlist_for_each_safe(curr, n, &in_heads[i])
+        {
+            struct order_node *entry =
+                list_entry(curr, struct order_node, node);
+            free(entry);
+        }
+    }
     free(in_heads);
     return res;
 }
