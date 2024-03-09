@@ -104,6 +104,65 @@ static struct TreeNode *buildTree(int *preorder,
                in_heads, inorderSize);
 }
 
+static struct TreeNode *buildTree_mod(int *preorder, int *inorder, int size)
+{
+    struct hlist_head *in_heads = malloc(size * sizeof(*in_heads));
+    for (int i = 0; i < size; i++)
+        INIT_HLIST_HEAD(&in_heads[i]);
+    for (int i = 0; i < size; i++)
+        node_add(inorder[i], i, size, in_heads);
+
+    int max_level = 2 * size;
+    struct info {
+        int pbegin;
+        int pend;
+        int ibegin;
+        int iend;
+        struct TreeNode **parent;
+    };
+    struct info *stk = malloc(sizeof(*stk) * max_level);
+    struct TreeNode *res = NULL;
+
+    stk[0].pbegin = 0;
+    stk[0].pend = size - 1;
+    stk[0].ibegin = 0;
+    stk[0].iend = size - 1;
+    stk[0].parent = &res;
+
+    int i = 0;
+
+    while (i > 0) {
+        // if not legal, return NULL to parent
+        if (stk[i].pbegin > stk[i].pend) {
+            *(stk[i].parent) = NULL;
+            i--;
+            continue;
+        }
+        int val = preorder[stk[i].pbegin];
+        int idx = find(val, size, in_heads);
+        struct TreeNode *temp = malloc(sizeof(*temp));
+        temp->val = val;
+        *(stk[i].parent) = temp;
+        // push left subtree
+        stk[i].pbegin = stk[i].pbegin + 1;
+        stk[i].pend = stk[i].pbegin + (idx - stk[i].ibegin);
+        stk[i].iend = idx - 1;
+        stk[i].parent = &temp->left;
+
+        // push right subtree
+        stk[i + 1].pbegin = stk[i].pend - (stk[i].iend - idx - 1);
+        stk[i + 1].pend = stk[i].pend;
+        stk[i + 1].ibegin = idx + 1;
+        stk[i + 1].iend = stk[i].iend;
+        stk[i + 1].parent = &temp->right;
+        i += 1;
+    }
+
+    free(stk);
+    free(in_heads);
+    return res;
+}
+
 static int curr = 0;
 void inorder(struct TreeNode *root, int *ans)
 {
@@ -132,20 +191,24 @@ void freeTree(struct TreeNode *root)
     free(root);
 }
 
+void verify(struct TreeNode *root, int *pre, int *in)
+{
+    curr = 0;
+    preorder(root, pre);
+    curr = 0;
+    inorder(root, in);
+    freeTree(root);
+}
+
 int main()
 {
     int pre[5] = {3, 9, 20, 15, 7};
     int in[5] = {9, 3, 15, 20, 7};
 
     // Test case 1
-    struct TreeNode *root = buildTree(pre, 5, in, 5);
-
-    curr = 0;
-    preorder(root, pre);
-    curr = 0;
-    inorder(root, in);
-
-    freeTree(root);
+    // struct TreeNode *root = buildTree(pre, 5, in, 5);
+    struct TreeNode *root = buildTree_mod(pre, in, 5);
+    verify(root, pre, in);
 
     // Test case 2: same preorder, different inorder
     // inorder: [3,2,1]
@@ -155,23 +218,19 @@ int main()
     in[0] = 3;
     in[1] = 2;
     in[2] = 1;
-    root = buildTree(pre, 3, in, 3);
-    curr = 0;
-    preorder(root, pre);
-    curr = 0;
-    inorder(root, in);
-    freeTree(root);
+
+    // root = buildTree(pre, 3, in, 3);
+    root = buildTree_mod(pre, in, 3);
+    verify(root, pre, in);
+
 
     // inorder: [2,1,3]
     in[0] = 2;
     in[1] = 1;
     in[2] = 3;
-    root = buildTree(pre, 3, in, 3);
-    curr = 0;
-    preorder(root, pre);
-    curr = 0;
-    inorder(root, in);
-    freeTree(root);
+    // root = buildTree(pre, 3, in, 3);
+    root = buildTree_mod(pre, in, 3);
+    verify(root, pre, in);
 
     // Test case 3: same inorder, different preorder
     //  preorder: [3,1,2]
@@ -181,23 +240,17 @@ int main()
     pre[0] = 3;
     pre[1] = 1;
     pre[2] = 2;
-    root = buildTree(pre, 3, in, 3);
-    curr = 0;
-    preorder(root, pre);
-    curr = 0;
-    inorder(root, in);
-    freeTree(root);
+    // root = buildTree(pre, 3, in, 3);
+    root = buildTree_mod(pre, in, 3);
+    verify(root, pre, in);
 
     // preorder: [1,2,3]
     pre[0] = 1;
     pre[1] = 2;
     pre[2] = 3;
-    root = buildTree(pre, 3, in, 3);
-    curr = 0;
-    preorder(root, pre);
-    curr = 0;
-    inorder(root, in);
-    freeTree(root);
+    // root = buildTree(pre, 3, in, 3);
+    root = buildTree_mod(pre, in, 3);
+    verify(root, pre, in);
 
     printf("All test case passed\n");
     return 0;
